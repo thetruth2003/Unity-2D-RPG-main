@@ -9,30 +9,17 @@ public class Player : MonoBehaviour
 
 
     private void Start()
+{
+    tileManager = GameManager.instance.tileManager;
+    if (tileManager == null)
     {
-        tileManager = GameManager.instance.tileManager;
-
+        Debug.LogError("tileManager is not assigned!");
     }
+}
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            if (tileManager != null)
-            {
-                Vector3Int position = new Vector3Int((int)transform.position.x, (int)transform.position.y, 0);
 
-                string tileName = tileManager.GetTileName(position);
-
-                if (!string.IsNullOrWhiteSpace(tileName))
-                {
-                    if (tileName == "interactable" && inventoryManager.toolbar.selectedSlot.itemName == "Hoe")
-                    {
-                        tileManager.SetInteracted(position);
-                    }
-                }
-            }
-        }
     }
 
     public void DropItem(Item item)
