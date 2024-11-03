@@ -1,29 +1,22 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Movement : MonoBehaviour
 {
-    public Toolbar_UI toolbarUI; // Toolbar_UI referansı
+    public Toolbar_UI toolbarUI; // Toolbar referansı
     public float speed;
     public Animator animator;
 
     private Vector3 direction;
     private Vector3Int characterPosition;
-    private TileManager tileManager; // TileManager referansı
+    private TileManager tileManager;
 
     private void Start()
     {
-        if (toolbarUI == null)
-        {
-            Debug.LogError("Toolbar UI is not assigned in Start!");
-        }
-        tileManager = GameManager.instance.tileManager; // TileManager'ı al
-
-        if (tileManager == null)
-        {
-            Debug.LogError("tileManager is not assigned!");
-        }    
+        if (toolbarUI == null) Debug.LogError("Toolbar UI is not assigned in Start!");
+        
+        tileManager = GameManager.instance.tileManager;
+        if (tileManager == null) Debug.LogError("tileManager is not assigned!");   
     }
 
     private void Update()
@@ -32,39 +25,28 @@ public class Movement : MonoBehaviour
         float vertical = Input.GetAxisRaw("Vertical");
 
         direction = new Vector3(horizontal, vertical).normalized;
-
         AnimateMovement(direction);
 
-        // Mouse tıklama kontrolü
-        if (Input.GetMouseButtonDown(0)) // Sol tık kontrolü
+        if (Input.GetMouseButtonDown(0))
         {
-            // Mouse pozisyonunu al ve dünya koordinatlarına çevir
             Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Camera.main.transform.position.z * -1));
             Vector3Int gridPosition = new Vector3Int(Mathf.RoundToInt(mouseWorldPosition.x), Mathf.RoundToInt(mouseWorldPosition.y), 0);
 
-            // Karakter pozisyonunu hesapla
             characterPosition = new Vector3Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y), 0);
 
-            // Mesafe kontrolü: sadece 3x3'lük alan içindeki tile'lar ile etkileşim
             if (gridPosition.x >= characterPosition.x - 1 && gridPosition.x <= characterPosition.x + 1 &&
                 gridPosition.y >= characterPosition.y - 1 && gridPosition.y <= characterPosition.y + 1)
             {
-                // Tile etkileşim kontrolü
-                    if (tileManager.IsDiggable(gridPosition))
-                {   
-                    StartCoroutine(Dig(gridPosition));
-                }
-                    if (tileManager.IsSeed(gridPosition))
-                {   
-                    StartCoroutine(Seed(gridPosition));
-                }
-
+                if (tileManager.IsDiggable(gridPosition)) StartCoroutine(Dig(gridPosition));
+                if (tileManager.IsSeed(gridPosition)) StartCoroutine(Seed(gridPosition));
             }
             else
             {
                 Debug.Log("Tile is out of range");
             }
             Debug.Log($"Character Position: {characterPosition}, Mouse Position: {gridPosition}");
+
+            HandleToolAnimation(); // Sol tıklama ile araç animasyonunu tetikle
         }
     }
 
@@ -89,91 +71,53 @@ public class Movement : MonoBehaviour
             }
         }
     }
-        private IEnumerator Dig(Vector3Int gridPosition)
+
+    private void HandleToolAnimation()
     {
-        if (toolbarUI == null)
+        if (toolbarUI == null) return;
+
+        string itemName = toolbarUI.GetSelectedItemName();
+        
+        if (string.IsNullOrEmpty(itemName)) return;
+
+        animator.ResetTrigger("axe");
+        animator.ResetTrigger("hammer");
+        animator.ResetTrigger("sword");
+        animator.ResetTrigger("rod");
+
+        if (itemName == "axe" || itemName == "hammer" || itemName == "sword" || itemName == "rod")
         {
-            Debug.LogError("Toolbar UI is not assigned!");
-            yield break; // toolbarUI null ise metodu sonlandır
+            animator.SetTrigger(itemName); // Sol tıklamayla ilgili animasyonu tetikle
         }
+    }
+
+    private IEnumerator Dig(Vector3Int gridPosition)
+    {
+        if (toolbarUI == null || animator == null) yield break;
 
         string itemName = toolbarUI.GetSelectedItemName();
 
-        if (string.IsNullOrEmpty(itemName))
-        {
-            Debug.LogWarning("Item name is null or empty.");
-            yield break; // itemName boşsa metodu sonlandır
-        }
-
-        if (animator == null)
-        {
-            Debug.LogError("Animator is not assigned!");
-            yield break; // animator null ise metodu sonlandır
-        }
+        if (string.IsNullOrEmpty(itemName) || itemName != "hoe") yield break;
 
         Debug.Log($"Swinging tool: {itemName}");
+        animator.SetTrigger("hoe");
 
-        // Animasyon parametrelerini sıfırla
-        animator.ResetTrigger("axe");
-        animator.ResetTrigger("hammer");
-        animator.ResetTrigger("hoe");
-        animator.ResetTrigger("sword");
-        animator.ResetTrigger("rod");
-        animator.ResetTrigger("seed");
-        
-        
-
-        // 0.2 saniye bekle
         yield return new WaitForSeconds(0.2f);
-
-            if (itemName == "hoe") // Animasyon adı "hoe" ise
-        {
-            tileManager.SetDiggable(gridPosition);
-            animator.SetTrigger(itemName);
-        }
-
+        tileManager.SetDiggable(gridPosition);
     }
+
     private IEnumerator Seed(Vector3Int gridPosition)
     {
-        if (toolbarUI == null)
-        {
-            Debug.LogError("Toolbar UI is not assigned!");
-            yield break; // toolbarUI null ise metodu sonlandır
-        }
+        if (toolbarUI == null || animator == null) yield break;
 
         string itemName = toolbarUI.GetSelectedItemName();
 
-        if (string.IsNullOrEmpty(itemName))
-        {
-            Debug.LogWarning("Item name is null or empty.");
-            yield break; // itemName boşsa metodu sonlandır
-        }
-
-        if (animator == null)
-        {
-            Debug.LogError("Animator is not assigned!");
-            yield break; // animator null ise metodu sonlandır
-        }
+        if (string.IsNullOrEmpty(itemName) || itemName != "seed") yield break;
 
         Debug.Log($"Swinging tool: {itemName}");
+        animator.SetTrigger("seed");
 
-        // Animasyon parametrelerini sıfırla
-        animator.ResetTrigger("axe");
-        animator.ResetTrigger("hammer");
-        animator.ResetTrigger("hoe");
-        animator.ResetTrigger("sword");
-        animator.ResetTrigger("rod");
-        animator.ResetTrigger("seed");
-        
-        
-
-        // 0.2 saniye bekle
         yield return new WaitForSeconds(0.2f);
-
-            if (itemName == "seed") // Animasyon adı "hoe" ise
-        {
-            tileManager.SetSeed(gridPosition);
-            animator.SetTrigger(itemName);
-        }
+        tileManager.SetSeed(gridPosition);
     }
 }
